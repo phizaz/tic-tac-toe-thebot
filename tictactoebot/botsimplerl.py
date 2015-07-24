@@ -1,85 +1,112 @@
 import math
 import random
+from environment import Environment
+from player import Player
 
 __author__ = 'phizaz'
-# this is a hack
-import sys
-import os
-
-sys.path.append(os.path.abspath('../../tic-tac-toe-thegame'))
-from tictactoe import TicTacToe
 
 # this bot uses reinforcement learning with q-value
 # with table lookup
 # assumed that the agent is deterministic
 class BotSimpleRL:
-    def __init__(self):
-        # list of states
-        self.states = None
-        # start state
-        # index of self.states
-        self.init_state_idx = None
-        # function that maps s -> list( (a, next_state_idx) )
-        # note that the action show tell us what is the next state as well
+    def __init__(self,
+                 environment,
+                 player):
+        assert isinstance(environment, Environment)
+        assert isinstance(player, Player)
+        # list of states, and start state
+        self.state_count, self.init_state_idx = environment.states()
+        assert isinstance(self.state_count, int)
+        assert isinstance(self.init_state_idx, int)
+        # hasher, encode state to int
+        self.hasher = environment.hasher
+        assert hasattr(self.hasher, '__call__')
+        self.dehasher = environment.dehasher
+        assert hasattr(self.dehasher, '__call__')
+        # function that maps s -> list(a)
         # if there is no action means terminate, the game is end
-        self.action_fn = None
+        self.action_fn = player.actions
+        assert hasattr(self.action_fn, '__call__')
         # function that maps s, a -> r
         # in this case, it's deterministic
-        self.reward_fn = None
+        self.reward_fn = player.reward
+        assert hasattr(self.reward_fn, '__call__')
         # discount value (gamma)
-        self.discount = None
+        self.discount = environment.discount
+        assert isinstance(self.discount, float)
         # randomness for epsilon-greedy
-        self.epsilon = None
+        self.epsilon = player.epsilon
+        assert isinstance(self.epsilon, float)
         # initial value of each state, default should be 0
-        self.q_init = None
+        self.q_init = environment.q_init
+        assert isinstance(float(self.q_init), float)
         # used in learning process
-        self.q_table = [None for each in self.states]
+        self.q_table = [None for each in range(self.state_count)]
         # result of the learning
         self.optimal_policy = None
+        self.alpha = self.alpha_fn_maker()
 
-    def init_state(self, state_idx):
+        # used in take_turn()
+        self.first_turn = True
+        self.last_state_idx = None
+        self.last_action_idx = None
+        self.last_reward = None
+        self.last_alpha = None
+
+    def init_q_state(self, state_idx):
+        assert isinstance(state_idx, int)
         # init the q_table of this state if never been initiated
-        possible_actions = self.action_fn(self.states[state_idx])
+        possible_actions = self.action_fn(self.dehasher(state_idx))
         self.q_table[state_idx] = [self.q_init for each in possible_actions]
 
-    def train(self, iterations, report=1000):
-        # report for every 1000 iterations
-        # train the bot
-        next_alpha_fn = self.alpha_fn_maker(iterations)
-        current_state_idx = self.init_state_idx
-        for itr in range(iterations):
-            # update the q table
-            current_state = self.states[current_state_idx]
-            action, action_idx, next_state_idx = self.next_action(current_state)
-
-            if self.q_table[current_state_idx] is None:
-                self.init_state(current_state_idx)
-
-            # what if the next state has not been initiated yet ? init it!
-            # retrieve the q_value of the next state, in the past
-            if self.q_table[next_state_idx] is None:
-                self.init_state(next_state_idx)
-            q_next_state = self.q_table[next_state_idx]
-            next_state_q_value = max([each for each in q_next_state])
-
-            # take action and update the q_table
-            q_state = self.q_table[current_state_idx]
-            alpha = next_alpha_fn()
-            reward = self.reward_fn(current_state, action)
+    # return the optimal policy, actually it's not optimal but the best that can be achieved
+    def take_turn(self, current_state):
+        assert isinstance(current_state, list)
+        # return as action
+        if self.first_turn:
+            self.first_turn = False
+        else:
+            # update the q_value
+            # between the current state and the last state
             # temporal difference
             # update the current q state
-            q_state[action_idx] = (1 - alpha) * q_state[action_idx] \
-                                  + alpha * (reward + self.discount * next_state_q_value)
+            q_state = self.q_table[self.last_state_idx]
+            current_state_q_value = max(self.q_table[current_state])
+            q_state[self.last_action_idx] = (1 - self.last_alpha) * q_state[self.last_action_idx] \
+                                            + self.last_alpha * (self.last_reward + self.discount * current_state_q_value)
 
-            if itr % report is 0:
-                # report the progress
-                print('itr: ', itr, ' exected_reward: ', self.expected_reward())
-        self.optimal_policy = self.current_policy()
-        return self.optimal_policy
+        current_alpha = self.alpha()
+        current_action, current_action_idx = self.next_action(current_state)
+        current_reward = self.reward_fn(current_state, current_action)
+
+        # init_the current state if not
+        current_state_idx = self.hasher(current_state)
+        if self.q_table[current_state_idx] is None:
+            self.init_q_state(current_state_idx)
+
+        # update the last state
+        # put this at the end of function
+        self.last_state_idx = current_state_idx
+        self.last_action_idx = current_action_idx
+        self.last_reward = current_reward
+        self.last_alpha = current_alpha
+
+        # the result will be fed up to the game (environment)
+        return current_action
 
     def test(self, rounds=1):
+        assert isinstance(rounds, int)
+        # this is a hack
+        # to import the tic-tac-toe game
+        import sys
+        import os
+        # import the game from another project
+        sys.path.append(os.path.abspath('../../tic-tac-toe-thegame'))
+        from tictactoe import TicTacToe
+
         # play with the real game, with a given round count
         # the result will be averaged
+
         pass
 
     def expected_reward(self):
@@ -90,7 +117,7 @@ class BotSimpleRL:
     def current_policy(self):
         # return current policy according to the q_table
         # policy is a list of actions for each state
-        policy = [None for each in self.states]
+        policy = [None for each in range(self.state_count)]
         for state_number, q_state in enumerate(self.q_table):
             best_action_number = 0
             for action_number, q_value in enumerate(q_state):
@@ -99,7 +126,7 @@ class BotSimpleRL:
             policy[state_number] = best_action_number
         return policy
 
-    def alpha_fn_maker(self, iterations=None):
+    def alpha_fn_maker(self):
         # return the alpha value
         # this value should eventually converge
         # high at first, low at the end
@@ -118,6 +145,7 @@ class BotSimpleRL:
         return generator
 
     def next_action(self, state):
+        assert isinstance(state, list)
         # return the next action gonna take
         # also calculate the epsilon greedy
         # exploration vs exploitation
@@ -129,6 +157,7 @@ class BotSimpleRL:
             return self.next_policy_action(state)
 
     def binary_random(self, probability):
+        assert isinstance(probability, float)
         # return true with given probability
         power = 1
         while math.floor(probability) != math.ceil(probability):
@@ -138,15 +167,17 @@ class BotSimpleRL:
         return rand <= probability
 
     def next_random_action(self, state):
+        assert isinstance(state, list)
         # next random action
         # just random
         actions = self.action_fn(state)
         action_idx = random.randrange(len(actions))
         # return a random action
-        action, next_state_idx = actions[action_idx]
-        return action, action_idx, next_state_idx
+        action = actions[action_idx]
+        return action, action_idx
 
     def next_policy_action(self, state):
+        assert isinstance(state, list)
         # best action according to the current policy
         # not from optimal policy (because it's not determined yet)
         # use the value from q_value table
@@ -156,6 +187,6 @@ class BotSimpleRL:
             if q_value > q_state[action_number]:
                 best_action_number = action_number
         # return the best action according to the policy
-        action, next_state_idx = self.action_fn(state)[best_action_number]
+        action = self.action_fn(state)[best_action_number]
         action_idx = best_action_number
-        return action, action_idx, next_state_idx
+        return action, action_idx
