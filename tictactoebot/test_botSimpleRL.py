@@ -7,32 +7,49 @@ __author__ = 'phizaz'
 
 
 class TestBotSimpleRL(TestCase):
+    env = Environment(q_init=0.1)
+    player = Player(name=1, epsilon=0.9, environment=env)
+
     def test_init_q_state(self):
-        assert 0
+        bot = BotSimpleRL(self.env, self.player)
+        bot.init_q_state(0)
+        assert len(bot.q_table[0]) == len(self.player.actions(self.env.dehasher(0)))
+        for each in bot.q_table[0]:
+            assert each == self.env.q_init
 
     def test_take_turn(self):
-        assert 0
+        pass
 
     def test_test(self):
-        assert 0
+        pass
 
     def test_expected_reward(self):
-        assert 0
+        pass
 
     def test_current_policy(self):
-        assert 0
+        pass
 
     def test_alpha_fn_maker(self):
-        assert 0
+        bot = BotSimpleRL(self.env, self.player)
+        fn = bot.alpha_fn_maker()
+        assert abs(fn() - 1/2) < 0.00001
+        assert abs(fn() - 1/3) < 0.00001
 
     def test_next_action(self):
-        assert 0
+        pass
 
     def test_binary_random(self):
-        assert 0
+        bot = BotSimpleRL(self.env, self.player)
+        all = 1000
+        trues = 0
+        prob = 0.23
+        for i in range(all):
+            trues += 1 if bot.binary_random(prob) else 0
+        experiment = trues / all
+        assert abs((experiment - prob) / prob) < 1
 
     def test_next_random_action(self):
-        assert 0
+        pass
 
     def test_next_policy_action(self):
-        assert 0
+        pass

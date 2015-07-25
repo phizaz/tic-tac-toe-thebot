@@ -2,7 +2,7 @@ __author__ = 'phizaz'
 
 class Environment:
     def __init__(self,
-                 discount=0.99,
+                 discount=0.5,
                  q_init=0):
         self.discount = discount
         self.q_init = q_init
@@ -12,6 +12,8 @@ class Environment:
         return 3 ** 9, 0
 
     def hasher(self, state):
+        assert isinstance(state, list)
+        assert isinstance(state[0], list)
         # return the hashed int value
         hashed = 0
         power = 0
@@ -22,6 +24,7 @@ class Environment:
         return hashed
 
     def dehasher(self, hashed_state):
+        assert isinstance(hashed_state, int)
         state = [[0 for i in range(3)] for i in range(3)]
         for i in range(9):
             state[i//3][i%3] = hashed_state % 3

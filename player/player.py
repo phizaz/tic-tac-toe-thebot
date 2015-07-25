@@ -17,11 +17,9 @@ class Player:
         state_count = environment.states()[0]
         # init cache
         self.cache = [None for each in range(state_count)]
+        self.termination_cache = [None for each in range(state_count)]
 
-    def reward(self, state, action):
-        # normally returns 0
-        # except for the terminate states
-
+    def is_termination(self, state):
         # no winner at first
         winner = None
 
@@ -50,18 +48,28 @@ class Player:
 
         diagonal_right = [state[i][3-i-1] for i in range(3)]
         is_winning(diagonal_right)
-
-        # normally returns 0
-        if winner is None:
-            return 0
-        else:
-            # if wins return 100 otherwise -100 (punishment)
+        # short circuit
+        if winner != None:
             if winner is self.name:
-                return 100
+                return True, 100
             else:
-                return -100
+                return True, -100
+
+        # check if all the cells are filled
+        for row in state:
+            for col in row:
+                if col == 0:
+                    return False, 0
+        # it's a draw
+        return True, 50
+
+    def reward(self, state, action):
+        # normally returns 0
+        return 0
 
     def actions(self, state):
+        assert isinstance(state, list)
+        assert isinstance(state[0], list)
         # return list of actions for a given state,
         # action should be a list of functions ?
         hashed_state = self.hasher(state)
