@@ -1,4 +1,5 @@
 import math
+import operator
 import random
 from environment import Environment
 from player import Player
@@ -106,6 +107,10 @@ class BotSimpleRL:
             # print('last_reward: ', self.last_reward)
 
             if is_termination:
+                # do some stack trace
+                # print('terminate state: ', q_current_state)
+                # print('last state: ', q_last_state)
+
                 # terminate state
                 # should not do any action
                 return None
@@ -169,9 +174,8 @@ class BotSimpleRL:
         # returns: 1 / count
         def generator():
             nonlocal count
-            count += 1
-            # return 1 / count
-            return 0.3
+            count += 0.01
+            return 1 / count
 
         # return as a function
         return generator
@@ -218,13 +222,14 @@ class BotSimpleRL:
         # best action according to the current policy
         # not from optimal policy (because it's not determined yet)
         # use the value from q_value table
-        best_action_number = 0
+        actions = self.action_fn(state)
         state_idx = self.hasher(state)
         q_state = self.q_table[state_idx]
-        for action_number, q_value in enumerate(q_state):
-            if q_value > q_state[action_number]:
-                best_action_number = action_number
+        best_action_number, q_best = max(enumerate(q_state), key=operator.itemgetter(1))
+        # best_action_number = 0
+        # for action_number, q_value in enumerate(q_state):
+        #     if q_value > q_state[action_number]:
+        #         best_action_number = action_number
         # return the best action according to the policy
-        action = self.action_fn(state)[best_action_number]
-        action_idx = best_action_number
-        return action, action_idx
+        best_action = actions[best_action_number]
+        return best_action, best_action_number

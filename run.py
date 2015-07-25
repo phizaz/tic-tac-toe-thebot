@@ -72,21 +72,22 @@ for round in range(rounds):
         print('tmp: ', first_bot.q_table[0])
 
 # play with human
-print('playing with human...')
-game.restart(start=2)
-first_bot.epsilon = 0.0
-current_player = 1
-while not game.is_end():
-    if current_player is 1:
-        # user
-        action = (int(input('row: ')),
-                  int(input('col: ')))
-    else:
-        # bot's turn
-        current_state = game_state()
-        action = first_bot.take_turn(current_state)
-    game.turn(action)
-    current_player = (current_player + 1) % 2
-    # show the result
-    game.display()
-    pass
+current_player = 0
+while True:
+    print('playing with human...')
+    game.restart(start=current_player+1)
+    first_bot.epsilon = 0.0
+    while not game.is_end():
+        if current_player is 1:
+            # user
+            action = (int(input('row: ')),
+                      int(input('col: ')))
+        else:
+            # bot's turn
+            current_state = game_state()
+            action = first_bot.take_turn(current_state)
+        game.turn(action)
+        current_player = (current_player + 1) % 2
+        # show the result
+        game.display()
+        pass

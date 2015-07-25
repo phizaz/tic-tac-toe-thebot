@@ -49,7 +49,9 @@ class TestBotSimpleRL(TestCase):
         assert abs((experiment - prob) / prob) < 1
 
     def test_next_random_action(self):
-        pass
+        bot = BotSimpleRL(self.env, self.player)
+        assert bot.next_action(bot.dehasher(0)) == 0
+        assert 0
 
     def test_next_policy_action(self):
         pass
