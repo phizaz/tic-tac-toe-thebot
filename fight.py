@@ -23,6 +23,8 @@ def fight(first_bot, second_bot):
         winner = game.winner()
         if winner is not None:
             return winner
+    # this part shouldn't be reached
+    return None
 
 def war(first_desc, second_desc, rounds=3):
     first_bot = Bot(name=1, q_table=Tools.load_source(first_desc))
