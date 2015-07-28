@@ -8,6 +8,7 @@ from tictactoe import TicTacToe
 
 __author__ = 'phizaz'
 
+
 def fight(first_bot, second_bot):
     # the first bot begins
     game = TicTacToe()
@@ -26,6 +27,7 @@ def fight(first_bot, second_bot):
     # this part shouldn't be reached
     return None
 
+
 def war(first_desc, second_desc, rounds=3):
     first_bot = Bot(name=1, q_table=Tools.load_source(first_desc))
     second_bot = Bot(name=2, q_table=Tools.invert(Tools.load_source(second_desc)))
@@ -33,7 +35,7 @@ def war(first_desc, second_desc, rounds=3):
     first_wins = 0
     draws = 0
     for i in range(rounds):
-        print('game: ', i+1, 'of', rounds)
+        print('game: ', i + 1, 'of', rounds)
         for bot_a, bot_b in (
                 (first_bot, second_bot),
                 (second_bot, first_bot)
@@ -50,12 +52,13 @@ def war(first_desc, second_desc, rounds=3):
         'second_wins': total - first_wins - draws
     }
 
+
 def tournament(bots):
     bots_count = len(bots)
     score_board = [0 for i in range(bots_count)]
     total_wins = [0 for i in range(bots_count)]
     for i in range(bots_count):
-        for j in range(i+1, bots_count):
+        for j in range(i + 1, bots_count):
             print('bot', i, 'vs', j)
             result = war(bots[i], bots[j])
             total_wins[i] += result['first_wins']
@@ -76,51 +79,28 @@ def tournament(bots):
 
     return result
 
-bots = (
-    {
-        'name': 'BotRLBetterDiscovery',
-        'exploratory': 1,
-        'rounds': 100000,
-    }, {
-        'name': 'BotRLBetterDiscovery',
-        'exploratory': 10,
-        'rounds': 100000,
-    }, {
-        'name': 'BotRLBetterDiscovery',
-        'exploratory': 100,
-        'rounds': 100000,
-    }, {
-        'name': 'BotRLBetterDiscovery',
-        'exploratory': 1000,
-        'rounds': 100000,
-    },
 
-    {
-        'name': 'BotSimpleRL',
-        'exploratory': 0.1,
-        'rounds': 100000,
-    }, {
-        'name': 'BotSimpleRL',
-        'exploratory': 0.2,
-        'rounds': 100000,
-    }, {
-        'name': 'BotSimpleRL',
-        'exploratory': 0.4,
-        'rounds': 100000,
-    }, {
-        'name': 'BotSimpleRL',
-        'exploratory': 0.6,
-        'rounds': 100000,
-    }, {
-        'name': 'BotSimpleRL',
-        'exploratory': 0.8,
-        'rounds': 100000,
-    }, {
-        'name': 'BotSimpleRL',
-        'exploratory': 1.0,
-        'rounds': 100000,
-    }
-)
+bots = [
+           {
+               'name': 'BotSimpleRL',
+               'rounds': rounds,
+               'exploratory': exploratory
+           } for rounds, exploratory in
+           Tools.cartesian_product(
+               [3 ** power * 10000 for power in range(0, 6)],
+               [i / 10 for i in range(1, 10 + 1)]
+           )
+           ] + [
+           {
+               'name': 'BotRLBetterDiscovery',
+               'rounds': rounds,
+               'exploratory': exploratory
+           } for rounds, exploratory in
+           Tools.cartesian_product(
+               [3 ** power * 10000 for power in range(0, 6)],
+               [i / 10 for i in range(1, 10 + 1)]
+           )
+           ]
 
 # print(war(first, second))
 tournament(bots)

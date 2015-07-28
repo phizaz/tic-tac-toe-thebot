@@ -3,6 +3,7 @@
 import concurrent.futures
 import sys
 import multiprocessing
+from mock.tools import Tools
 import os
 
 sys.path.append(os.path.abspath('../tic-tac-toe-thegame'))
@@ -14,19 +15,34 @@ import tictactoebot
 import environment
 import player
 
-name = 'BotSimpleRL'
-rounds = 100000
-# bot = tictactoebot.BotRLBetterDiscovery
-bot = tictactoebot.BotSimpleRL
-# exploratories = [1, 10, 100, 1000, 10000]
-exploratories = [1.0, 0.8, 0.6, 0.4, 0.2, 0.1]
 num_workers = max(multiprocessing.cpu_count() // 2, 1)
 
-print('training ', name, ' with exploratories:', exploratories)
+experiments = [
+                  {
+                      'name': 'BotSimpleRL',
+                      'bot': tictactoebot.BotSimpleRL,
+                      'rounds': rounds,
+                      'exploratory': exploratory
+                  } for rounds, exploratory in
+                  Tools.cartesian_product(
+                      [3 ** power * 10000 for power in range(0, 6)],
+                      [i / 10 for i in range(1, 10 + 1)]
+                  )
+                  ] + [
+                  {
+                      'name': 'BotRLBetterDiscovery',
+                      'bot': tictactoebot.BotRLBetterDiscovery,
+                      'rounds': rounds,
+                      'exploratory': exploratory
+                  } for rounds, exploratory in
+                  Tools.cartesian_product(
+                      [3 ** power * 10000 for power in range(0, 6)],
+                      [i / 10 for i in range(1, 10 + 1)]
+                  )
+              ]
 
-
-def instance(bot, exploratory):
-    print('starting exploratory : ', exploratory)
+def instance(name, bot, exploratory, rounds):
+    print('task: name:', name, 'bot:', bot, 'exploratory:', exploratory, 'rounds:', rounds)
     start_time = time.process_time()
     env = environment.Environment(discount=1.0, q_init=0.5)
     first_player = player.Player(
@@ -93,12 +109,18 @@ def instance(bot, exploratory):
     print('finished exploratory: ', exploratory, ' time: ', time.process_time() - start_time)
     return 0
 
+
 with concurrent.futures.ProcessPoolExecutor(max_workers=num_workers) as executor:
     jobs = {}
-    for exploratory in exploratories:
-        jobs[executor.submit(instance, bot, exploratory)] = exploratory
+    for task in experiments:
+        name = task['name']
+        bot = task['bot']
+        exploratory = task['exploratory']
+        rounds = task['rounds']
+        jobs[executor.submit(instance, name, bot, exploratory, rounds)] = \
+            name, bot, exploratory, rounds
     for job in concurrent.futures.as_completed(jobs):
-        exploratory = jobs[job]
+        task = jobs[job]
         res = job.result()
         print('res:', res)
-        print('job exploratory: ', exploratory, ' has been finished!')
+        print('task:', task, 'has been finished!')

@@ -32,3 +32,10 @@ class Tools:
             inverted_state_idx = env.hasher(state)
             result[inverted_state_idx] = q_state
         return result
+    @staticmethod
+    def cartesian_product(list_a, list_b):
+        result = []
+        for i in range(len(list_a)):
+            for j in range(len(list_b)):
+                result.append((list_a[i], list_b[j]))
+        return result
