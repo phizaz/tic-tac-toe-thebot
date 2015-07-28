@@ -5,13 +5,14 @@ from environment import Environment
 class Player:
     def __init__(self,
                  name,
-                 epsilon,
+                 exploratory,
                  environment):
         assert isinstance(environment, Environment)
         # this will be used in reward function
         # used when comparing a state
         self.name = name
-        self.epsilon = epsilon
+        self.exploratory = exploratory
+        assert isinstance(float(self.exploratory), float)
         self.hasher = environment.hasher
         self.dehasher = environment.dehasher
         state_count = environment.states()[0]
@@ -51,17 +52,17 @@ class Player:
         # short circuit
         if winner != None:
             if winner is self.name:
-                return True, 100
+                return True, 1.0
             else:
-                return True, -100
+                return True, 0.0
 
         # check if all the cells are filled
         for row in state:
             for col in row:
-                if col == 0:
-                    return False, 0
+                if col is 0:
+                    return False, None
         # it's a draw
-        return True, 50
+        return True, 0.25
 
     def reward(self, state, action):
         # normally returns 0

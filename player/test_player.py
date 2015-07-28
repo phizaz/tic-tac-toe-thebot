@@ -9,7 +9,7 @@ class TestPlayer(TestCase):
     def test_reward(self):
         env = Environment()
         player = Player(name=1,
-                        epsilon=0.8,
+                        exploratory=0.8,
                         environment=env)
         state = [
             [1, 2, 1],
@@ -27,7 +27,7 @@ class TestPlayer(TestCase):
     def test_actions(self):
         env = Environment()
         player = Player(name=1,
-                        epsilon=0.8,
+                        exploratory=0.8,
                         environment=env)
         state = [
             [1, 2, 1],

@@ -8,7 +8,7 @@ __author__ = 'phizaz'
 
 class TestBotSimpleRL(TestCase):
     env = Environment(q_init=0.1)
-    player = Player(name=1, epsilon=0.9, environment=env)
+    player = Player(name=1, exploratory=0.9, environment=env)
 
     def test_init_q_state(self):
         bot = BotSimpleRL(self.env, self.player)
@@ -42,16 +42,19 @@ class TestBotSimpleRL(TestCase):
         bot = BotSimpleRL(self.env, self.player)
         all = 1000
         trues = 0
-        prob = 0.23
+        prob = 1.0
         for i in range(all):
             trues += 1 if bot.binary_random(prob) else 0
         experiment = trues / all
-        assert abs((experiment - prob) / prob) < 1
+        assert abs((experiment - prob) / prob) < 0.0001
 
     def test_next_random_action(self):
         bot = BotSimpleRL(self.env, self.player)
-        assert bot.next_action(bot.dehasher(0)) == 0
+        assert bot.next_random_action(bot.dehasher(0), 0) == 0
         assert 0
 
     def test_next_policy_action(self):
+        bot = BotSimpleRL(self.env, self.player)
+        bot.init_q_state(0)
+        assert bot.next_policy_action(bot.dehasher(0), 0) == -1
         pass

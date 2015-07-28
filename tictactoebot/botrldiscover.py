@@ -9,7 +9,7 @@ __author__ = 'phizaz'
 # this bot uses reinforcement learning with q-value
 # with table lookup
 # assumed that the agent is deterministic
-class BotSimpleRL:
+class BotRLBetterDiscovery:
     def __init__(self,
                  environment,
                  player):
@@ -38,15 +38,16 @@ class BotSimpleRL:
         assert hasattr(self.is_termination, '__call__')
         # discount value (gamma)
         self.discount = environment.discount
-        assert isinstance(self.discount, float)
+        assert isinstance(float(self.discount), float)
         # randomness for epsilon-greedy
-        self.epsilon = player.exploratory
-        assert isinstance(self.epsilon, float)
+        self.exploratory = player.exploratory
+        assert isinstance(float(self.exploratory), float)
         # initial value of each state, default should be 0
         self.q_init = environment.q_init
         assert isinstance(float(self.q_init), float)
         # used in learning process
         self.q_table = [None for each in range(self.state_count)]
+        self.counter = [None for each in range(self.state_count)]
         # result of the learning
         self.optimal_policy = None
         self.alpha = self.alpha_fn_maker()
@@ -57,7 +58,6 @@ class BotSimpleRL:
         self.last_action_idx = None
         self.last_reward = None
         self.last_alpha = None
-        self.last_is_explore = None
 
     def restart(self):
         # the environment has been reset
@@ -66,13 +66,13 @@ class BotSimpleRL:
         self.last_action_idx = None
         self.last_reward = None
         self.last_alpha = None
-        self.last_is_explore = None
 
     def init_q_state(self, state_idx):
         assert isinstance(state_idx, int)
         # init the q_table of this state if never been initiated
         possible_actions = self.action_fn(self.dehasher(state_idx))
         self.q_table[state_idx] = [self.q_init for each in possible_actions]
+        self.counter[state_idx] = [1 for each in possible_actions]
 
     def next_state(self, current_state, action):
         # this return the afterstate
@@ -95,6 +95,7 @@ class BotSimpleRL:
             # this is a termination state
             # the reward is the state itself
             self.q_table[current_state_idx] = [termination_reward]
+            self.counter[current_state_idx] = [float('inf')]
 
         if self.q_table[current_state_idx] is None:
             self.init_q_state(current_state_idx)
@@ -111,13 +112,18 @@ class BotSimpleRL:
             # print('state: ', current_state_idx)
             # print('q_table: ', self.q_table[current_state_idx])
             q_current_state = self.q_table[current_state_idx]
-            # if len(q_current_state) is 0:
-            #     print('state: ', current_state)
-            #     print('is_termination:', is_termination)
             q_current_value = max(q_current_state)
-            q_last_state[self.last_action_idx] = (1 - self.last_alpha) * q_last_state[self.last_action_idx] \
-                                                 + self.last_alpha * (
-            self.last_reward + self.discount * q_current_value)
+            # counter = self.counter[current_state_idx]
+            # f_state = [q_value + self.exploratory / counter[i] for i, q_value in enumerate(q_current_state)]
+            # print('state: ', current_state)
+            # print('f: ', f_state)
+            # print('q: ', q_current_state)
+            # f_current_value = max(f_state)
+            # print('state: ', current_state_idx, ' counter: ', counter)
+            sample = self.last_reward + self.discount * q_current_value
+            old = q_last_state[self.last_action_idx]
+            diff = sample - old
+            q_last_state[self.last_action_idx] += self.last_alpha * diff
             # print('q_last_state: ', q_last_state[self.last_action_idx], 'last_state_idx: ', self.last_state_idx)
             # print('last_reward: ', self.last_reward)
 
@@ -127,11 +133,7 @@ class BotSimpleRL:
             return None
 
         current_alpha = self.alpha()
-        is_explore = self.binary_random(self.epsilon)
-        if is_explore:
-            current_action, current_action_idx = self.next_random_action(current_state, current_state_idx)
-        else:
-            current_action, current_action_idx = self.next_policy_action(current_state, current_state_idx)
+        current_action, current_action_idx = self.next_policy_action(current_state, current_state_idx)
         current_reward = self.reward_fn(current_state, current_action)
         # print('current_reward: ', current_reward)
         # update the last state
@@ -140,7 +142,8 @@ class BotSimpleRL:
         self.last_action_idx = current_action_idx
         self.last_reward = current_reward
         self.last_alpha = current_alpha
-        self.last_is_explore = is_explore
+        # update the counter
+        self.counter[current_state_idx][current_action_idx] += 1
 
         # the result will be fed up to the game (environment)
         return current_action
@@ -197,30 +200,6 @@ class BotSimpleRL:
         # return as a function
         return generator
 
-    def binary_random(self, probability):
-        # return true with given probability
-        assert isinstance(probability, float)
-        if probability < 0.0001:
-            return False
-
-        power = 1
-        while math.floor(probability) != math.ceil(probability):
-            probability *= 10
-            power *= 10
-        rand = random.randrange(power)
-        return rand <= probability
-
-    def next_random_action(self, state, state_idx):
-        assert isinstance(state, list)
-        assert isinstance(state[0], list)
-        # next random action
-        # just random
-        actions = self.action_fn(state)
-        action_idx = random.randrange(len(actions))
-        # return a random action
-        action = actions[action_idx]
-        return action, action_idx
-
     def next_policy_action(self, state, state_idx):
         assert isinstance(state, list)
         # best action according to the current policy
@@ -228,12 +207,14 @@ class BotSimpleRL:
         # use the value from q_value table
         actions = self.action_fn(state)
         q_state = self.q_table[state_idx]
+        count = self.counter[state_idx]
+        f_state = [q_value + self.exploratory / count[i] for i, q_value in enumerate(q_state)]
         best_action_numbers = [0]
-        for action_number, q_value in enumerate(q_state):
-            best = q_state[best_action_numbers[0]]
-            if q_value > best:
+        for action_number, f_value in enumerate(f_state):
+            best = f_state[best_action_numbers[0]]
+            if f_value > best:
                 best_action_numbers = [action_number]
-            elif action_number > 0 and abs(q_value - best) < 0.0001:
+            elif action_number > 0 and abs(f_value - best) < 0.0001:
                 best_action_numbers.append(action_number)
         # print('best_action_numbers: ', best_action_numbers)
         best_action_number = best_action_numbers[random.randrange(len(best_action_numbers))]
