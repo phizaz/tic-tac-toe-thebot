@@ -45,12 +45,12 @@ def instance(bot, exploratory):
         player=second_player)
 
     game = TicTacToe()
-    # play the frist bot against the second bot, self learning !!
+    # play the first bot against the second bot, self learning !!
     # the game should last .. long
-    # configurations
+    # report every 1000 rounds
     report = 1000
     # play until ends
-    # the first bot makes move
+    # the first bot makes move, alternate this afterwards
     start_turn = first_bot.player.name
     for round in range(rounds):
         # do the training
@@ -80,9 +80,6 @@ def instance(bot, exploratory):
         current_state = game.table
         first_bot.take_turn(current_state)
         second_bot.take_turn(current_state)
-        # lower the epsilon over time,
-        # this will make the bot more likely to
-        # get the real fight between each other
 
         if round % report is 0:
             # make report
@@ -94,44 +91,8 @@ def instance(bot, exploratory):
     print('saving into file:', filename)
     json.dump(first_bot.q_table, open(filename, 'w'))
     print('finished exploratory: ', exploratory, ' time: ', time.process_time() - start_time)
-
-    # play with human
-    # current_player = 0
-    # while True:
-    #     print('playing with human...')
-    #     game.restart(start=current_player + 1)
-    #     first_bot.exploratory = 0.0
-    #     while not game.is_end():
-    #         if current_player is 1:
-    #             # user
-    #             action = (int(input('row: ')),
-    #                       int(input('col: ')))
-    #         else:
-    #             # bot's turn
-    #             current_state = game_state()
-    #             action = first_bot.take_turn(current_state)
-    #             current_state_idx = first_bot.hasher(current_state)
-    #             act_id = 0
-    #             for i, row in enumerate(current_state):
-    #                 for j, col in enumerate(row):
-    #                     if col is 0:
-    #                         possible_action = (i, j)
-    #                         winning_prob = first_bot.q_table[current_state_idx][act_id]
-    #                         print('action: ', possible_action, 'with winning prob: ', winning_prob)
-    #                         act_id += 1
-    #             winning_prob = max(first_bot.q_table[current_state_idx])
-    #             print('best action: ', action, 'winning prob: ', winning_prob)
-    #
-    #         game.turn(action)
-    #         current_player = (current_player + 1) % 2
-    #         # show the result
-    #         game.display()
-    #         pass
     return 0
 
-# print('res: ', instance(bot, exploratories[0]))
-# instance(bot, exploratories[0])
-#
 with concurrent.futures.ProcessPoolExecutor(max_workers=num_workers) as executor:
     jobs = {}
     for exploratory in exploratories:

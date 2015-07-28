@@ -1,62 +1,12 @@
-import json
 import sys
-import operator
+from mock.bot import Bot
+from mock.tools import Tools
 import os
-import environment
-from player import Player
-from tictactoebot import BotRLBetterDiscovery
 
 sys.path.append(os.path.abspath('../tic-tac-toe-thegame'))
 from tictactoe import TicTacToe
 
 __author__ = 'phizaz'
-
-def source_file_name(bot_desc):
-    return 'results/' +\
-           bot_desc['name'] \
-           + '-' \
-           + str(bot_desc['exploratory']) \
-           + '-' \
-           + str(bot_desc['rounds'])\
-           + '.txt'
-
-def load_source(bot_desc):
-    filename = source_file_name(bot_desc)
-    return json.load(open(filename, 'r'))
-
-def invert(q_table):
-    env = environment.Environment()
-    result = [None for each in q_table]
-    for state_idx, q_state in enumerate(q_table):
-        state = env.dehasher(state_idx)
-        for i, row in enumerate(state):
-            for j, col in enumerate(row):
-                if col is 1:
-                    state[i][j] = 2
-                elif col is 2:
-                    state[i][j] = 1
-        inverted_state_idx = env.hasher(state)
-        result[inverted_state_idx] = q_state
-    return result
-
-class Bot:
-    def __init__(self, name, q_table):
-        self.name = name
-        self.q_table = q_table
-        self.env = environment.Environment()
-        self.player = Player(name=name,
-                                    exploratory=0.0,
-                                    environment=self.env)
-
-    def take_turn(self, state):
-        state_idx = self.env.hasher(state)
-        actions = self.player.actions(state)
-        # print('state_idx: ', state_idx, 'state: ', state)
-        # print('q_table: ', self.q_table[state_idx])
-        best_action_idx, _ = max(enumerate(self.q_table[state_idx]), key=operator.itemgetter(1))
-        # if best_action_idx >= len(actions):
-        #     print('problem state: ', state, 'action_idx: ', best_action_idx, 'actions: ', actions)
-        return actions[best_action_idx]
 
 def fight(first_bot, second_bot):
     # the first bot begins
@@ -75,8 +25,8 @@ def fight(first_bot, second_bot):
             return winner
 
 def war(first_desc, second_desc, rounds=3):
-    first_bot = Bot(name=1, q_table=load_source(first_desc))
-    second_bot = Bot(name=2, q_table=invert(load_source(second_desc)))
+    first_bot = Bot(name=1, q_table=Tools.load_source(first_desc))
+    second_bot = Bot(name=2, q_table=Tools.invert(Tools.load_source(second_desc)))
     total = rounds * 2
     first_wins = 0
     draws = 0
