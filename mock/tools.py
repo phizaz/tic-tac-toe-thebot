@@ -15,6 +15,9 @@ class Tools:
                + '.txt'
     @staticmethod
     def load_source(bot_desc):
+        assert 'name' in bot_desc
+        assert 'exploratory' in bot_desc
+        assert 'rounds' in bot_desc
         filename = Tools.source_file_name(bot_desc)
         return json.load(open(filename, 'r'))
     @staticmethod
