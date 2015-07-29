@@ -1,6 +1,7 @@
 from environment import Environment
 import operator
 from player import Player
+import random
 
 __author__ = 'phizaz'
 
@@ -18,7 +19,14 @@ class Bot:
         actions = self.player.actions(state)
         # print('state_idx: ', state_idx, 'state: ', state)
         # print('q_table: ', self.q_table[state_idx])
-        best_action_idx, _ = max(enumerate(self.q_table[state_idx]), key=operator.itemgetter(1))
+        if self.q_table[state_idx] is None:
+            # pick a random action
+            # this happens when the given bot has not thoroughly discovered
+            print('!', end='')
+            best_action_idx = random.randrange(len(actions))
+        else:
+            # stick to the policy
+            best_action_idx, _ = max(enumerate(self.q_table[state_idx]), key=operator.itemgetter(1))
         # if best_action_idx >= len(actions):
         #     print('problem state: ', state, 'action_idx: ', best_action_idx, 'actions: ', actions)
         return actions[best_action_idx]
