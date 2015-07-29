@@ -28,12 +28,14 @@ def fight(first_bot, second_bot):
     # this part shouldn't be reached
     return None
 
+
 def timer(func, name='Unknown'):
     start_time = time.process_time()
     result = func()
     time_elapsed = time.process_time() - start_time
     print(name + 'time used:', time_elapsed)
     return result
+
 
 def war(first_desc, second_desc, rounds=3):
     start_time = time.process_time()
@@ -78,6 +80,10 @@ def tournament(bots):
     bots_count = len(bots)
     score_board = [0 for i in range(bots_count)]
     total_wins = [0 for i in range(bots_count)]
+    total_win_wars = [0 for i in range(bots_count)]
+    total_lose_wars = [0 for i in range(bots_count)]
+    total_wars = bots_count * (bots_count - 1) / 2
+    total_fights = 3 * total_wars
     for j in range(bots_count):
         for i in range(j + 1, bots_count):
             print('bot', i, 'vs', j)
@@ -86,16 +92,29 @@ def tournament(bots):
             total_wins[j] += result['second_wins']
             if result['first_wins'] > result['second_wins']:
                 score_board[i] += 3
+                total_win_wars[i] += 1
+                total_lose_wars[j] += 1
             elif result['second_wins'] < result['first_wins']:
                 score_board[j] += 3
+                total_win_wars[j] += 1
+                total_lose_wars[i] += 1
             else:
                 score_board[i] += 1
                 score_board[j] += 1
-    result = [{'bot': bot, 'score': score_board[i], 'wins': total_wins[i]} for i, bot in enumerate(bots)]
+    result = [{
+                  'bot': bot,
+                  'score': score_board[i],
+                  'winning_rate': total_wins[i] / total_fights,
+                  'total_win_wars': total_win_wars[i],
+                  'total_lose_wars': total_lose_wars[i],
+                  'total_draw_wars': total_wars - total_win_wars[i] - total_lose_wars[i],
+              } for i, bot in enumerate(bots)]
     result.sort(key=lambda x: -x['score'])
 
     for rank, each in enumerate(result):
-        print('rank: ', rank, 'score: ', each['score'], 'wins:', each['wins'])
+        print('rank: ', rank, 'score: ', each['score'])
+        print('win_rate:', each['winning_rate'], 'won:', each['total_win_wars'], 'lost:', each['total_lose_wars'],
+              'drew:', each['total_draw_wars'])
         print('bot: ', each['bot'])
 
     return result
